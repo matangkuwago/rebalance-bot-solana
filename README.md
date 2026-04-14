@@ -1,2 +1,3 @@
 # rebalance-bot-solana
-Yet Another Rebalancing Bot
+
+This is a simple rebalancing bot. This project is a work in progress. Expect breaking changes and incomplete documentation
