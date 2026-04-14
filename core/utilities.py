@@ -12,11 +12,8 @@ class MintInfoWithProgramID(MintInfo):
     token_program_id = None
 
     def __new__(cls, *args, **kwargs):
-        # 1. Pull out the new field
         token_id = kwargs.pop('token_program_id', None)
-        # 2. Create the base object using only the original 5 fields
         self = super().__new__(cls, *args, **kwargs)
-        # 3. Manually attach the new field
         object.__setattr__(self, 'token_program_id', token_id)
         return self
 
@@ -55,7 +52,6 @@ async def get_mint_info(mint, rpc_url):
             freeze_authority=mint_data.freeze_authority,
             token_program_id=account_info.value.owner
         )
-        # mint_info.
 
         return mint_info
 
