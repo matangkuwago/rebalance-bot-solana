@@ -208,3 +208,6 @@ __marimo__/
 
 # Address key files
 *.key
+
+# JSON / Config files
+*.json
