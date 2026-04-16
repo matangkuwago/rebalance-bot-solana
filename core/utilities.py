@@ -3,7 +3,9 @@ import logging
 import sys
 from solana.rpc.async_api import AsyncClient
 from solders.pubkey import Pubkey
+from spl.token.constants import TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID
 from spl.token.core import MintInfo
+from spl.token.instructions import get_associated_token_address
 from spl.token._layouts import MINT_LAYOUT
 from core.config import Config
 
@@ -33,12 +35,12 @@ def save_json_file(file_path, data):
         json.dump(data, f)
 
 
-async def get_mint_info(mint, rpc_url):
-    mint_address = Pubkey.from_string(mint)
+async def get_mint_info(mint: str, rpc_url: str):
+    mint_pubkey = Pubkey.from_string(mint)
     rpc = AsyncClient(rpc_url)
     async with rpc:
         # Get account info
-        account_info = await rpc.get_account_info(mint_address)
+        account_info = await rpc.get_account_info(mint_pubkey)
 
         # Parse mint data using layout
         mint_data = MINT_LAYOUT.parse(account_info.value.data)
@@ -105,3 +107,49 @@ def setup_logging(logger_name: str, log_file: str = None, log_level: int = loggi
         logger.addHandler(file_handler)
 
     return logger
+
+
+async def get_token_account(owner: Pubkey, mint_address: Pubkey, token_program_id: Pubkey, rpc_url: str = Config.DEFAULT_RPC):
+    assert token_program_id == TOKEN_PROGRAM_ID or token_program_id == TOKEN_2022_PROGRAM_ID
+
+    # Find associated token address
+    associated_token_address = get_associated_token_address(
+        owner=owner,
+        mint=mint_address,
+        token_program_id=token_program_id
+    )
+
+    rpc = AsyncClient(rpc_url)
+    account_info = None
+    async with rpc:
+        try:
+            # Get token account info
+            account_info = await rpc.get_account_info(associated_token_address)
+
+            print(f"Owner: {owner}")
+            print(f"Mint Address: {mint_address}")
+            print(f"Associated Token Address: {associated_token_address}")
+            if account_info.value:
+                print(f"Owner: {account_info.value.owner}")
+                print(f"Lamports: {account_info.value.lamports}")
+                print(f"Data Length: {len(account_info.value.data)} bytes")
+                print(f"Executable: {account_info.value.executable}")
+                return associated_token_address
+            else:
+                print("Token account not found")
+                return None
+
+        except Exception as e:
+            print(f"Error getting token account info: {e}")
+            return None
+
+    return account_info
+
+
+async def get_sol_balance(wallet: Pubkey, rpc_url: str = Config.DEFAULT_RPC):
+    rpc = AsyncClient(rpc_url)
+    async with rpc:
+        response = await rpc.get_balance(wallet)
+        lamports = response.value
+        sol_balance = await raw_amount_to_amount(Config.SOL_MINT, lamports, rpc_url)
+        return sol_balance
