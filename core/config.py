@@ -19,3 +19,6 @@ class Config:
 
     MIN_REBALANCE_SOL_VALUE: float = float(
         os.getenv("MIN_REBALANCE_SOL_VALUE", 0.12))
+
+    TRADE_TAX_PERCENTAGE: float = float(
+        os.getenv("TRADE_TAX_PERCENTAGE", 0))

@@ -61,7 +61,8 @@ class RebalanceBot:
                  rebalance_items: list[RebalanceItem],
                  trader: Trader = None,
                  rpc_url: str = Config.DEFAULT_RPC,
-                 min_rebalance_sol_value: float = Config.MIN_REBALANCE_SOL_VALUE):
+                 min_rebalance_sol_value: float = Config.MIN_REBALANCE_SOL_VALUE,
+                 trade_tax_percentage: float = Config.TRADE_TAX_PERCENTAGE):
 
         self.validate_setup(rebalance_items)
         self.wallet = Keypair.from_base58_string(private_key)
@@ -69,6 +70,7 @@ class RebalanceBot:
         self.trader = trader if trader else JupiterTrader()
         self.rpc_url = rpc_url
         self.min_rebalance_sol_value = min_rebalance_sol_value
+        self.trade_tax_percentage = trade_tax_percentage
         self.logger = setup_logging(
             "RebalanceBot", "rebalance_bot.log", Config.LOG_LEVEL)
 
@@ -171,17 +173,19 @@ class RebalanceBot:
                     self.logger.info(f"execute_rebalance_actions: "
                                      f"{mint}: sold {input_amount}, "
                                      f"bought {output_amount} SOL")
-                    available_sol += output_amount
+                    available_sol += (output_amount *
+                                      (1-self.trade_tax_percentage))
 
         for action in buy_actions:
             mint = action["mint"]
-            quantity = action["quantity"]
+            quantity = action["quantity"] * (1-self.trade_tax_percentage)
             if available_sol <= 0:
                 self.logger.info(f"execute_rebalance_actions: "
                                  f"{mint}: no more available SOL to buy {quantity} of {mint}")
                 continue
             sol_value = action["sol_value"]
             sol_budget = sol_value if sol_value <= available_sol else available_sol
+            sol_budget = sol_budget * (1-self.trade_tax_percentage)
             input_mint = Config.SOL_MINT
             output_mint = mint
             if input_mint == output_mint:
