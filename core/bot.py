@@ -1,3 +1,4 @@
+import asyncio
 import json
 from dataclasses import dataclass, asdict
 from typing import List, Type
@@ -195,6 +196,13 @@ class RebalanceBot:
                                      f"bought {output_amount} {mint}")
 
     async def rebalance(self, rebalance_interval: int | None = None):
-        await self.update_rebalance_items()
-        self.get_rebalance_actions()
-        await self.execute_rebalance_actions()
+        while True:
+            await self.update_rebalance_items()
+            self.get_rebalance_actions()
+            await self.execute_rebalance_actions()
+
+            if not rebalance_interval:
+                break
+            self.logger.info(
+                f"We'll be back in {rebalance_interval} second(s)...")
+            await asyncio.sleep(rebalance_interval)
